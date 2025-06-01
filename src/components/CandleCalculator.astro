@@ -25,6 +25,49 @@
         </h2>
 
         <div class="space-y-6">
+          <!-- Container Type and Quantity -->
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Container Type
+                <span class="tooltip-trigger inline-flex items-center justify-center w-4 h-4 ml-1 text-xs bg-gray-300 text-gray-600 rounded-full cursor-help" data-tooltip="Jug makes 8 candles (1880g), 8oz jar is individual (235g)">?</span>
+              </label>
+              <select 
+                id="containerType"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#a5b79b] focus:border-transparent transition-all duration-200 bg-white/50"
+              >
+                <option value="jug">Jug (8 candles)</option>
+                <option value="jar">8oz Jar (individual)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Quantity
+                <span class="tooltip-trigger inline-flex items-center justify-center w-4 h-4 ml-1 text-xs bg-gray-300 text-gray-600 rounded-full cursor-help" data-tooltip="Number of jugs or individual jars to make">?</span>
+              </label>
+              <input 
+                type="number" 
+                id="containerQuantity"
+                value="1"
+                min="1"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#a5b79b] focus:border-transparent transition-all duration-200 bg-white/50"
+                placeholder="1"
+              />
+            </div>
+          </div>
+
+          <!-- Total Water Capacity Display -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Total Water Capacity
+              <span class="tooltip-trigger inline-flex items-center justify-center w-4 h-4 ml-1 text-xs bg-gray-300 text-gray-600 rounded-full cursor-help" data-tooltip="Automatically calculated based on container type and quantity">?</span>
+            </label>
+            <div class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-medium">
+              <span id="totalWaterCapacity">1880g</span>
+              <span id="containerInfo" class="text-sm text-gray-500 ml-2">(1 jug = 8 candles)</span>
+            </div>
+          </div>
+
           <!-- Wax Type Selection -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -41,21 +84,6 @@
               <option value="paraffin">Paraffin Wax</option>
               <option value="custom">Custom</option>
             </select>
-          </div>
-
-          <!-- Jar Water Capacity -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Jar Water Capacity (g)
-              <span class="tooltip-trigger inline-flex items-center justify-center w-4 h-4 ml-1 text-xs bg-gray-300 text-gray-600 rounded-full cursor-help" data-tooltip="Total water weight for your jar or melting pot">?</span>
-            </label>
-            <input 
-              type="number" 
-              id="jarCapacity"
-              value="1880"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#a5b79b] focus:border-transparent transition-all duration-200 bg-white/50"
-              placeholder="1880"
-            />
           </div>
 
           <!-- Wax Gravity -->
@@ -230,6 +258,12 @@
     'custom': { gravity: 0.92, meltTemp: 185, mixTemp: 155, pourTemp: 135 }
   };
 
+  // Container types with their water capacities
+  const containerTypes: Record<string, { waterCapacity: number; description: string }> = {
+    'jug': { waterCapacity: 1880, description: 'jug = 8 candles' },
+    'jar': { waterCapacity: 235, description: '8oz jar' }
+  };
+
   // Recipe presets
   const recipePresets: Record<string, RecipePreset> = {
     'log-cabin': {
@@ -304,6 +338,32 @@
 
     updateTotalPercentage();
     // Auto-calculate when preset is loaded
+    calculateRecipe();
+  }
+
+  function updateWaterCapacity(): void {
+    const containerType = (document.getElementById('containerType') as HTMLSelectElement)?.value || 'jug';
+    const quantity = parseInt((document.getElementById('containerQuantity') as HTMLInputElement)?.value) || 1;
+    
+    const containerData = containerTypes[containerType];
+    const totalCapacity = containerData.waterCapacity * quantity;
+    
+    const capacityDisplay = document.getElementById('totalWaterCapacity');
+    const infoDisplay = document.getElementById('containerInfo');
+    
+    if (capacityDisplay) {
+      capacityDisplay.textContent = `${totalCapacity}g`;
+    }
+    
+    if (infoDisplay) {
+      if (containerType === 'jug') {
+        infoDisplay.textContent = `(${quantity} ${quantity === 1 ? 'jug' : 'jugs'} = ${quantity * 8} candles)`;
+      } else {
+        infoDisplay.textContent = `(${quantity} ${quantity === 1 ? '8oz jar' : '8oz jars'})`;
+      }
+    }
+    
+    // Auto-calculate when capacity changes
     calculateRecipe();
   }
 
@@ -406,7 +466,12 @@
   }
 
   function calculateRecipe(): void {
-    const jarCapacity = parseFloat((document.getElementById('jarCapacity') as HTMLInputElement)?.value) || 1880;
+    // Calculate total water capacity from container selection
+    const containerType = (document.getElementById('containerType') as HTMLSelectElement)?.value || 'jug';
+    const quantity = parseInt((document.getElementById('containerQuantity') as HTMLInputElement)?.value) || 1;
+    const containerData = containerTypes[containerType];
+    const jarCapacity = containerData.waterCapacity * quantity;
+    
     const waxGravity = parseFloat((document.getElementById('waxGravity') as HTMLInputElement)?.value) || 0.92;
     const scentLoad = parseFloat((document.getElementById('scentLoad') as HTMLInputElement)?.value) || 8;
     const waxType = (document.getElementById('waxType') as HTMLSelectElement)?.value || '464';
@@ -439,15 +504,21 @@
     });
     
     // Display results
-    displayResults(waxWeight, totalFragranceWeight, fragrances, jarCapacity, waxType, waxFill);
+    displayResults(waxWeight, totalFragranceWeight, fragrances, jarCapacity, waxType, waxFill, containerType, quantity);
   }
 
-  function displayResults(waxWeight: number, totalFragranceWeight: number, fragrances: FragranceData[], jarCapacity: number, waxType: string, waxFill: number): void {
+  function displayResults(waxWeight: number, totalFragranceWeight: number, fragrances: FragranceData[], jarCapacity: number, waxType: string, waxFill: number, containerType: string, quantity: number): void {
     const container = document.getElementById('resultsContainer');
     if (!container) return;
 
     const totalWeight = waxWeight + totalFragranceWeight;
     const waxData = waxTypes[waxType] || waxTypes['464'];
+    const containerData = containerTypes[containerType];
+    
+    // Calculate individual container amounts if making multiple
+    const individualWaxWeight = waxWeight / quantity;
+    const individualFragranceWeight = totalFragranceWeight / quantity;
+    const individualTotalWeight = totalWeight / quantity;
     
     container.innerHTML = `
       <div class="space-y-6">
@@ -457,18 +528,21 @@
           <div class="grid grid-cols-2 gap-4">
             <div class="text-center">
               <div class="text-2xl font-bold text-[#a5b79b]">${waxWeight.toFixed(1)}g</div>
-              <div class="text-sm text-gray-600">Wax Weight</div>
+              <div class="text-sm text-gray-600">Total Wax Weight</div>
+              ${quantity > 1 ? `<div class="text-xs text-gray-500">${individualWaxWeight.toFixed(1)}g per ${containerData.description}</div>` : ''}
             </div>
             <div class="text-center">
               <div class="text-2xl font-bold text-[#7a9173]">${totalFragranceWeight.toFixed(1)}g</div>
               <div class="text-sm text-gray-600">Total Fragrance</div>
+              ${quantity > 1 ? `<div class="text-xs text-gray-500">${individualFragranceWeight.toFixed(1)}g per ${containerData.description}</div>` : ''}
             </div>
           </div>
           <div class="mt-4 pt-4 border-t border-gray-200">
             <div class="text-center">
               <div class="text-lg font-semibold text-gray-800">${totalWeight.toFixed(1)}g</div>
               <div class="text-sm text-gray-600">Total Recipe Weight</div>
-              <div class="text-xs text-gray-500 mt-1">Volume-locked to jar capacity (${waxFill.toFixed(1)}g)</div>
+              ${quantity > 1 ? `<div class="text-xs text-gray-500">${individualTotalWeight.toFixed(1)}g per ${containerData.description}</div>` : ''}
+              <div class="text-xs text-gray-500 mt-1">Volume-locked to ${quantity} ${quantity === 1 ? containerData.description : containerData.description + 's'} (${waxFill.toFixed(1)}g capacity)</div>
             </div>
           </div>
         </div>
@@ -541,7 +615,8 @@
     const calculateBtn = document.getElementById('calculateBtn') as HTMLButtonElement;
     const waxTypeSelect = document.getElementById('waxType') as HTMLSelectElement;
     const recipePresetsSelect = document.getElementById('recipePresets') as HTMLSelectElement;
-    const jarCapacityInput = document.getElementById('jarCapacity') as HTMLInputElement;
+    const containerTypeSelect = document.getElementById('containerType') as HTMLSelectElement;
+    const containerQuantityInput = document.getElementById('containerQuantity') as HTMLInputElement;
     const waxGravityInput = document.getElementById('waxGravity') as HTMLInputElement;
     const scentLoadInput = document.getElementById('scentLoad') as HTMLInputElement;
     const initialPercentageInput = document.querySelector('.fragrance-percentage') as HTMLInputElement;
@@ -563,11 +638,16 @@
       recipePresetsSelect.addEventListener('change', loadRecipePreset);
     }
 
-    // Add auto-calculation on input changes
-    if (jarCapacityInput) {
-      jarCapacityInput.addEventListener('input', calculateRecipe);
+    // Add event listeners for container type and quantity
+    if (containerTypeSelect) {
+      containerTypeSelect.addEventListener('change', updateWaterCapacity);
     }
 
+    if (containerQuantityInput) {
+      containerQuantityInput.addEventListener('input', updateWaterCapacity);
+    }
+
+    // Add auto-calculation on input changes
     if (waxGravityInput) {
       waxGravityInput.addEventListener('input', calculateRecipe);
     }
@@ -599,6 +679,7 @@
 
     updateFragranceNumbers();
     updateWaxProperties();
+    updateWaterCapacity(); // Initialize water capacity display
     
     // Initialize mobile-friendly tooltips
     initializeTooltips();
