@@ -6,32 +6,12 @@
   <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="text-center mb-12">
-      <div class="inline-flex items-center gap-3 mb-4">
-        <!-- Logo SVG -->
-        <svg width="60" height="60" viewBox="0 0 100 100" class="text-[#a5b79b]">
-          <!-- Candle flame -->
-          <ellipse cx="50" cy="15" rx="3" ry="8" fill="#FFA500"/>
-          <!-- Wick -->
-          <rect x="49" y="23" width="2" height="5" fill="#8B4513"/>
-          <!-- Candle body -->
-          <rect x="35" y="28" width="30" height="45" rx="2" fill="#F5F5DC"/>
-          <!-- Wax pool -->
-          <ellipse cx="50" cy="30" rx="12" ry="2" fill="#a5b79b" opacity="0.7"/>
-          <!-- Candle jar -->
-          <rect x="32" y="70" width="36" height="25" rx="3" fill="#a5b79b" opacity="0.3"/>
-          <rect x="33" y="71" width="34" height="23" rx="2" fill="none" stroke="#a5b79b" stroke-width="1"/>
-          <!-- Woodland elements -->
-          <path d="M15 85 Q20 75 25 85 Q30 75 35 85" fill="none" stroke="#7a9173" stroke-width="2"/>
-          <path d="M65 85 Q70 75 75 85 Q80 75 85 85" fill="none" stroke="#7a9173" stroke-width="2"/>
-          <!-- Pine needles -->
-          <path d="M20 80 L25 78 M22 82 L27 80 M18 78 L23 76" stroke="#6b7f65" stroke-width="1"/>
-          <path d="M75 80 L80 78 M77 82 L82 80 M73 78 L78 76" stroke="#6b7f65" stroke-width="1"/>
-        </svg>
-        <h1 class="text-4xl font-bold text-gray-800">Woodland Candle Calculator</h1>
+      <div class="flex flex-col items-center gap-2">
+        <!-- Large centered logo -->
+        <img src="/logo.svg" alt="Woodland Candle Logo" width="120" height="120" class="mx-auto" />
+        <!-- Calculator text in bold -->
+        <h1 class="text-xl lg:text-3xl font-black text-black tracking-wide">Recipe Calculator</h1>
       </div>
-      <p class="text-lg text-gray-600 max-w-2xl mx-auto">
-        Craft the perfect candle blend with precision. Calculate exact measurements for your handmade candles.
-      </p>
     </div>
 
     <div class="grid lg:grid-cols-2 gap-8">
@@ -182,13 +162,7 @@
             id="calculateBtn"
             class="w-full bg-[#a5b79b] hover:bg-[#7a9173] text-white font-bold py-5 px-8 rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 active:scale-95"
           >
-            <span class="flex items-center justify-center gap-3 text-lg">
-              <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-1 3c-1.1 0-2 .9-2 2v1H7c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2h-2V7c0-1.1-.9-2-2-2h-2z"/>
-                <ellipse cx="12" cy="3" rx="1" ry="2" fill="#FFA500"/>
-              </svg>
-              <span class="font-bold text-white tracking-wide">Calculate Recipe</span>
-            </span>
+            <span class="text-lg font-bold text-white tracking-wide text-center">Calculate Recipe</span>
           </button>
         </div>
       </div>
@@ -230,16 +204,34 @@
   let fragranceCount = 1;
   
   // Wax type data with properties
-  const waxTypes = {
-    '464': { gravity: 0.92, meltTemp: 185, pourTemp: 135 },
-    'coconut': { gravity: 0.94, meltTemp: 175, pourTemp: 145 },
-    'beeswax': { gravity: 0.96, meltTemp: 145, pourTemp: 140 },
-    'paraffin': { gravity: 0.90, meltTemp: 140, pourTemp: 135 },
-    'custom': { gravity: 0.92, meltTemp: 185, pourTemp: 135 }
+  interface WaxData {
+    gravity: number;
+    meltTemp: number;
+    mixTemp: number;
+    pourTemp: number;
+  }
+
+  interface FragranceData {
+    name: string;
+    percentage: number;
+    weight?: number;
+  }
+
+  interface RecipePreset {
+    name: string;
+    fragrances: FragranceData[];
+  }
+
+  const waxTypes: Record<string, WaxData> = {
+    '464': { gravity: 0.92, meltTemp: 180, mixTemp: 185, pourTemp: 135 },
+    'coconut': { gravity: 0.94, meltTemp: 175, mixTemp: 180, pourTemp: 145 },
+    'beeswax': { gravity: 0.96, meltTemp: 145, mixTemp: 150, pourTemp: 140 },
+    'paraffin': { gravity: 0.90, meltTemp: 140, mixTemp: 145, pourTemp: 135 },
+    'custom': { gravity: 0.92, meltTemp: 180, mixTemp: 185, pourTemp: 135 }
   };
 
   // Recipe presets
-  const recipePresets = {
+  const recipePresets: Record<string, RecipePreset> = {
     'log-cabin': {
       name: 'Log Cabin',
       fragrances: [
@@ -281,17 +273,20 @@
     }
   };
 
-  function updateWaxProperties() {
-    const waxType = document.getElementById('waxType')?.value || '464';
-    const waxGravityInput = document.getElementById('waxGravity');
+  function updateWaxProperties(): void {
+    const waxType = (document.getElementById('waxType') as HTMLSelectElement)?.value || '464';
+    const waxGravityInput = document.getElementById('waxGravity') as HTMLInputElement;
     
     if (waxGravityInput && waxTypes[waxType]) {
-      waxGravityInput.value = waxTypes[waxType].gravity;
+      waxGravityInput.value = waxTypes[waxType].gravity.toString();
     }
+    
+    // Auto-calculate when wax type changes
+    calculateRecipe();
   }
 
-  function loadRecipePreset() {
-    const presetValue = document.getElementById('recipePresets')?.value;
+  function loadRecipePreset(): void {
+    const presetValue = (document.getElementById('recipePresets') as HTMLSelectElement)?.value;
     if (!presetValue || !recipePresets[presetValue]) return;
 
     const preset = recipePresets[presetValue];
@@ -303,16 +298,18 @@
     fragranceCount = 0;
 
     // Add preset fragrances
-    preset.fragrances.forEach((fragrance) => {
-      addFragranceInput(fragrance.name, fragrance.percentage);
+    preset.fragrances.forEach((fragrance: FragranceData) => {
+      addFragranceInput(fragrance.name, fragrance.percentage.toString());
     });
 
     updateTotalPercentage();
+    // Auto-calculate when preset is loaded
+    calculateRecipe();
   }
 
-  function updateFragranceNumbers() {
+  function updateFragranceNumbers(): void {
     const inputs = document.querySelectorAll('.fragrance-input');
-    inputs.forEach((input, index) => {
+    inputs.forEach((input, index: number) => {
       const label = input.querySelector('label');
       if (label) {
         label.textContent = `Fragrance Oil ${index + 1} (%)`;
@@ -326,11 +323,11 @@
     });
   }
 
-  function updateTotalPercentage() {
-    const percentageInputs = document.querySelectorAll('.fragrance-percentage');
+  function updateTotalPercentage(): void {
+    const percentageInputs = document.querySelectorAll('.fragrance-percentage') as NodeListOf<HTMLInputElement>;
     let total = 0;
     
-    percentageInputs.forEach(input => {
+    percentageInputs.forEach((input: HTMLInputElement) => {
       const value = parseFloat(input.value) || 0;
       total += value;
     });
@@ -349,9 +346,12 @@
         warningSpan.classList.add('hidden');
       }
     }
+    
+    // Auto-calculate when percentages change
+    calculateRecipe();
   }
 
-  function addFragranceInput(defaultName = '', defaultPercentage = '') {
+  function addFragranceInput(defaultName: string = '', defaultPercentage: string = ''): void {
     fragranceCount++;
     const container = document.getElementById('fragranceInputs');
     if (!container) return;
@@ -389,8 +389,8 @@
     updateFragranceNumbers();
     
     // Add event listeners to new inputs
-    const percentageInput = newInput.querySelector('.fragrance-percentage');
-    const removeBtn = newInput.querySelector('.remove-fragrance');
+    const percentageInput = newInput.querySelector('.fragrance-percentage') as HTMLInputElement;
+    const removeBtn = newInput.querySelector('.remove-fragrance') as HTMLButtonElement;
     
     if (percentageInput) {
       percentageInput.addEventListener('input', updateTotalPercentage);
@@ -405,11 +405,11 @@
     }
   }
 
-  function calculateRecipe() {
-    const jarCapacity = parseFloat(document.getElementById('jarCapacity')?.value) || 1880;
-    const waxGravity = parseFloat(document.getElementById('waxGravity')?.value) || 0.92;
-    const scentLoad = parseFloat(document.getElementById('scentLoad')?.value) || 8;
-    const waxType = document.getElementById('waxType')?.value || '464';
+  function calculateRecipe(): void {
+    const jarCapacity = parseFloat((document.getElementById('jarCapacity') as HTMLInputElement)?.value) || 1880;
+    const waxGravity = parseFloat((document.getElementById('waxGravity') as HTMLInputElement)?.value) || 0.92;
+    const scentLoad = parseFloat((document.getElementById('scentLoad') as HTMLInputElement)?.value) || 8;
+    const waxType = (document.getElementById('waxType') as HTMLSelectElement)?.value || '464';
     
     // Calculate wax weight
     const waxWeight = jarCapacity * waxGravity;
@@ -419,11 +419,11 @@
     
     // Get fragrance percentages
     const fragranceInputs = document.querySelectorAll('.fragrance-input');
-    const fragrances = [];
+    const fragrances: FragranceData[] = [];
     
-    fragranceInputs.forEach((input, index) => {
-      const percentage = parseFloat(input.querySelector('.fragrance-percentage')?.value) || 0;
-      const name = input.querySelector('.fragrance-name')?.value || `Fragrance Oil ${index + 1}`;
+    fragranceInputs.forEach((input, index: number) => {
+      const percentage = parseFloat((input.querySelector('.fragrance-percentage') as HTMLInputElement)?.value) || 0;
+      const name = (input.querySelector('.fragrance-name') as HTMLInputElement)?.value || `Fragrance Oil ${index + 1}`;
       
       if (percentage > 0) {
         const weight = (totalFragranceWeight * percentage) / 100;
@@ -435,7 +435,7 @@
     displayResults(waxWeight, totalFragranceWeight, fragrances, jarCapacity, waxType);
   }
 
-  function displayResults(waxWeight, totalFragranceWeight, fragrances, jarCapacity, waxType) {
+  function displayResults(waxWeight: number, totalFragranceWeight: number, fragrances: FragranceData[], jarCapacity: number, waxType: string): void {
     const container = document.getElementById('resultsContainer');
     if (!container) return;
 
@@ -465,13 +465,38 @@
           </div>
         </div>
 
+        <!-- Fragrance Breakdown -->
+        ${fragrances.length > 0 ? `
+          <div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Fragrance Breakdown</h3>
+            <div class="space-y-3">
+              ${fragrances.map((fragrance: FragranceData, index: number) => `
+                <div class="bg-white/60 rounded-lg p-4 border border-gray-200 flex justify-between items-center">
+                  <div>
+                    <div class="font-medium text-gray-800">${fragrance.name}</div>
+                    <div class="text-sm text-gray-600">${fragrance.percentage}% of fragrance</div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-lg font-semibold text-[#a5b79b]">${fragrance.weight?.toFixed(2)}g</div>
+                    <div class="text-xs text-gray-500">${((fragrance.weight! / totalWeight) * 100).toFixed(1)}% of total</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
         <!-- Temperature Guidelines -->
         <div class="bg-amber-50 rounded-xl p-6 border border-amber-200">
           <h3 class="text-lg font-semibold text-amber-800 mb-4">Temperature Guidelines</h3>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-3 gap-4">
             <div class="text-center">
               <div class="text-xl font-bold text-amber-700">${waxData.meltTemp}°F</div>
               <div class="text-sm text-amber-600">Melting Temperature</div>
+            </div>
+            <div class="text-center">
+              <div class="text-xl font-bold text-amber-700">${waxData.mixTemp}°F</div>
+              <div class="text-sm text-amber-600">Mixing Temperature</div>
             </div>
             <div class="text-center">
               <div class="text-xl font-bold text-amber-700">${waxData.pourTemp}°F</div>
@@ -480,38 +505,19 @@
           </div>
         </div>
 
-        <!-- Fragrance Breakdown -->
-        ${fragrances.length > 0 ? `
-          <div>
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Fragrance Breakdown</h3>
-            <div class="space-y-3">
-              ${fragrances.map((fragrance, index) => `
-                <div class="bg-white/60 rounded-lg p-4 border border-gray-200 flex justify-between items-center">
-                  <div>
-                    <div class="font-medium text-gray-800">${fragrance.name}</div>
-                    <div class="text-sm text-gray-600">${fragrance.percentage}% of fragrance</div>
-                  </div>
-                  <div class="text-right">
-                    <div class="text-lg font-semibold text-[#a5b79b]">${fragrance.weight.toFixed(2)}g</div>
-                    <div class="text-xs text-gray-500">${((fragrance.weight / totalWeight) * 100).toFixed(1)}% of total</div>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        ` : ''}
-
         <!-- Instructions -->
         <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
-          <h3 class="text-sm font-semibold text-blue-800 mb-2">Candle Making Instructions</h3>
+          <h3 class="text-sm font-semibold text-blue-800 mb-2">Sarah's Wax Melter Instructions</h3>
           <ol class="text-sm text-blue-700 space-y-1 list-decimal list-inside">
             <li>Measure ${waxWeight.toFixed(1)}g of wax</li>
-            <li>Melt wax to ${waxData.meltTemp}°F</li>
-            <li>Remove from heat and let cool to ${waxData.pourTemp}°F</li>
-            ${fragrances.map(f => `<li>Add ${f.weight.toFixed(2)}g of ${f.name}</li>`).join('')}
-            <li>Stir thoroughly for 2 minutes</li>
-            <li>Pour into prepared containers</li>
-            <li>Allow to cool and cure for 24-48 hours</li>
+            <li>Melt wax in wax melter to ${waxData.meltTemp}°F</li>
+            <li>Pour melted wax into mixing pitcher</li>
+            <li>Wait for pitcher to reach ${waxData.mixTemp}°F</li>
+            ${fragrances.map((f: FragranceData) => `<li>Add ${f.weight?.toFixed(2)}g of ${f.name} to pitcher</li>`).join('')}
+            <li>Mix oils into wax very well (2-3 minutes)</li>
+            <li>Wait for pitcher to cool to ${waxData.pourTemp}°F</li>
+            <li>Transfer wax from pitcher to wax dispenser</li>
+            <li>Pour candles and allow to cure for 24-48 hours</li>
           </ol>
         </div>
       </div>
@@ -520,12 +526,15 @@
 
   // Initialize event listeners
   document.addEventListener('DOMContentLoaded', () => {
-    const addBtn = document.getElementById('addFragrance');
-    const calculateBtn = document.getElementById('calculateBtn');
-    const waxTypeSelect = document.getElementById('waxType');
-    const recipePresetsSelect = document.getElementById('recipePresets');
-    const initialPercentageInput = document.querySelector('.fragrance-percentage');
-    const initialRemoveBtn = document.querySelector('.remove-fragrance');
+    const addBtn = document.getElementById('addFragrance') as HTMLButtonElement;
+    const calculateBtn = document.getElementById('calculateBtn') as HTMLButtonElement;
+    const waxTypeSelect = document.getElementById('waxType') as HTMLSelectElement;
+    const recipePresetsSelect = document.getElementById('recipePresets') as HTMLSelectElement;
+    const jarCapacityInput = document.getElementById('jarCapacity') as HTMLInputElement;
+    const waxGravityInput = document.getElementById('waxGravity') as HTMLInputElement;
+    const scentLoadInput = document.getElementById('scentLoad') as HTMLInputElement;
+    const initialPercentageInput = document.querySelector('.fragrance-percentage') as HTMLInputElement;
+    const initialRemoveBtn = document.querySelector('.remove-fragrance') as HTMLButtonElement;
 
     if (addBtn) {
       addBtn.addEventListener('click', () => addFragranceInput());
@@ -541,6 +550,19 @@
 
     if (recipePresetsSelect) {
       recipePresetsSelect.addEventListener('change', loadRecipePreset);
+    }
+
+    // Add auto-calculation on input changes
+    if (jarCapacityInput) {
+      jarCapacityInput.addEventListener('input', calculateRecipe);
+    }
+
+    if (waxGravityInput) {
+      waxGravityInput.addEventListener('input', calculateRecipe);
+    }
+
+    if (scentLoadInput) {
+      scentLoadInput.addEventListener('input', calculateRecipe);
     }
 
     if (initialPercentageInput) {
