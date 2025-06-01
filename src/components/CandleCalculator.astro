@@ -29,7 +29,7 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
               Wax Type
-              <span class="inline-flex items-center justify-center w-4 h-4 ml-1 text-xs bg-gray-300 text-gray-600 rounded-full cursor-help" title="Select your wax type for automatic gravity and temperature settings">?</span>
+              <span class="tooltip-trigger inline-flex items-center justify-center w-4 h-4 ml-1 text-xs bg-gray-300 text-gray-600 rounded-full cursor-help" data-tooltip="Select your wax type for automatic gravity and temperature settings">?</span>
             </label>
             <select 
               id="waxType"
@@ -47,7 +47,7 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
               Jar Water Capacity (g)
-              <span class="inline-flex items-center justify-center w-4 h-4 ml-1 text-xs bg-gray-300 text-gray-600 rounded-full cursor-help" title="Total water weight for your jar or melting pot">?</span>
+              <span class="tooltip-trigger inline-flex items-center justify-center w-4 h-4 ml-1 text-xs bg-gray-300 text-gray-600 rounded-full cursor-help" data-tooltip="Total water weight for your jar or melting pot">?</span>
             </label>
             <input 
               type="number" 
@@ -62,7 +62,7 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
               Wax Gravity
-              <span class="inline-flex items-center justify-center w-4 h-4 ml-1 text-xs bg-gray-300 text-gray-600 rounded-full cursor-help" title="Weight of wax divided by the weight of water">?</span>
+              <span class="tooltip-trigger inline-flex items-center justify-center w-4 h-4 ml-1 text-xs bg-gray-300 text-gray-600 rounded-full cursor-help" data-tooltip="Weight of wax divided by the weight of water">?</span>
             </label>
             <input 
               type="number" 
@@ -78,7 +78,7 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
               Scent Load (%)
-              <span class="inline-flex items-center justify-center w-4 h-4 ml-1 text-xs bg-gray-300 text-gray-600 rounded-full cursor-help" title="How smelly do you want the candles?">?</span>
+              <span class="tooltip-trigger inline-flex items-center justify-center w-4 h-4 ml-1 text-xs bg-gray-300 text-gray-600 rounded-full cursor-help" data-tooltip="How smelly do you want the candles?">?</span>
             </label>
             <input 
               type="number" 
@@ -94,7 +94,7 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">
               Sarah's Recipe Presets
-              <span class="inline-flex items-center justify-center w-4 h-4 ml-1 text-xs bg-gray-300 text-gray-600 rounded-full cursor-help" title="Load one of Sarah's signature woodland candle recipes">?</span>
+              <span class="tooltip-trigger inline-flex items-center justify-center w-4 h-4 ml-1 text-xs bg-gray-300 text-gray-600 rounded-full cursor-help" data-tooltip="Load one of Sarah's signature woodland candle recipes">?</span>
             </label>
             <select 
               id="recipePresets"
@@ -223,11 +223,11 @@
   }
 
   const waxTypes: Record<string, WaxData> = {
-    '464': { gravity: 0.92, meltTemp: 180, mixTemp: 185, pourTemp: 135 },
+    '464': { gravity: 0.92, meltTemp: 185, mixTemp: 155, pourTemp: 135 },
     'coconut': { gravity: 0.94, meltTemp: 175, mixTemp: 180, pourTemp: 145 },
     'beeswax': { gravity: 0.96, meltTemp: 145, mixTemp: 150, pourTemp: 140 },
     'paraffin': { gravity: 0.90, meltTemp: 140, mixTemp: 145, pourTemp: 135 },
-    'custom': { gravity: 0.92, meltTemp: 180, mixTemp: 185, pourTemp: 135 }
+    'custom': { gravity: 0.92, meltTemp: 185, mixTemp: 155, pourTemp: 135 }
   };
 
   // Recipe presets
@@ -411,11 +411,18 @@
     const scentLoad = parseFloat((document.getElementById('scentLoad') as HTMLInputElement)?.value) || 8;
     const waxType = (document.getElementById('waxType') as HTMLSelectElement)?.value || '464';
     
-    // Calculate wax weight
-    const waxWeight = jarCapacity * waxGravity;
+    // Calculate "wax-only fill" - the maximum weight of pure wax that would fill the jar
+    const waxFill = jarCapacity * waxGravity;
+    
+    // Convert scent load percentage to decimal
+    const scentLoadDecimal = scentLoad / 100;
+    
+    // Back-calculate actual wax weight so that wax + fragrance = wax-fill capacity
+    // Formula: wax_weight = wax_fill / (1 + scent_load_decimal)
+    const waxWeight = waxFill / (1 + scentLoadDecimal);
     
     // Calculate total fragrance weight
-    const totalFragranceWeight = (waxWeight * scentLoad) / 100;
+    const totalFragranceWeight = waxWeight * scentLoadDecimal;
     
     // Get fragrance percentages
     const fragranceInputs = document.querySelectorAll('.fragrance-input');
@@ -432,10 +439,10 @@
     });
     
     // Display results
-    displayResults(waxWeight, totalFragranceWeight, fragrances, jarCapacity, waxType);
+    displayResults(waxWeight, totalFragranceWeight, fragrances, jarCapacity, waxType, waxFill);
   }
 
-  function displayResults(waxWeight: number, totalFragranceWeight: number, fragrances: FragranceData[], jarCapacity: number, waxType: string): void {
+  function displayResults(waxWeight: number, totalFragranceWeight: number, fragrances: FragranceData[], jarCapacity: number, waxType: string, waxFill: number): void {
     const container = document.getElementById('resultsContainer');
     if (!container) return;
 
@@ -461,6 +468,7 @@
             <div class="text-center">
               <div class="text-lg font-semibold text-gray-800">${totalWeight.toFixed(1)}g</div>
               <div class="text-sm text-gray-600">Total Recipe Weight</div>
+              <div class="text-xs text-gray-500 mt-1">Volume-locked to jar capacity (${waxFill.toFixed(1)}g)</div>
             </div>
           </div>
         </div>
@@ -492,15 +500,15 @@
           <div class="grid grid-cols-3 gap-4">
             <div class="text-center">
               <div class="text-xl font-bold text-amber-700">${waxData.meltTemp}°F</div>
-              <div class="text-sm text-amber-600">Melting Temperature</div>
+              <div class="text-sm text-amber-600">Melting</div>
             </div>
             <div class="text-center">
               <div class="text-xl font-bold text-amber-700">${waxData.mixTemp}°F</div>
-              <div class="text-sm text-amber-600">Mixing Temperature</div>
+              <div class="text-sm text-amber-600">Mixing</div>
             </div>
             <div class="text-center">
               <div class="text-xl font-bold text-amber-700">${waxData.pourTemp}°F</div>
-              <div class="text-sm text-amber-600">Pouring Temperature</div>
+              <div class="text-sm text-amber-600">Pouring</div>
             </div>
           </div>
         </div>
@@ -509,11 +517,14 @@
         <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
           <h3 class="text-sm font-semibold text-blue-800 mb-2">Sarah's Wax Melter Instructions</h3>
           <ol class="text-sm text-blue-700 space-y-1 list-decimal list-inside">
-            <li>Measure ${waxWeight.toFixed(1)}g of wax</li>
-            <li>Melt wax in wax melter to ${waxData.meltTemp}°F</li>
-            <li>Pour melted wax into mixing pitcher</li>
+            <li>Melt all wax in wax melter to ${waxData.meltTemp}°F</li>
+            <li>Pre-mix all fragrance oils together in a separate container:</li>
+            <ul class="text-sm text-blue-600 ml-4 mt-1 space-y-0.5 list-disc list-inside">
+              ${fragrances.map((f: FragranceData) => `<li>${f.weight?.toFixed(2)}g of ${f.name}</li>`).join('')}
+            </ul>
+            <li>Pour melted wax into mixing pitcher to measure ${waxWeight.toFixed(1)}g</li>
             <li>Wait for pitcher to reach ${waxData.mixTemp}°F</li>
-            ${fragrances.map((f: FragranceData) => `<li>Add ${f.weight?.toFixed(2)}g of ${f.name} to pitcher</li>`).join('')}
+            <li>Add entire fragrance mixture (${totalFragranceWeight.toFixed(1)}g total) to pitcher</li>
             <li>Mix oils into wax very well (2-3 minutes)</li>
             <li>Wait for pitcher to cool to ${waxData.pourTemp}°F</li>
             <li>Transfer wax from pitcher to wax dispenser</li>
@@ -588,7 +599,70 @@
 
     updateFragranceNumbers();
     updateWaxProperties();
+    
+    // Initialize mobile-friendly tooltips
+    initializeTooltips();
   });
+
+  // Mobile-friendly tooltip system
+  function initializeTooltips(): void {
+    const tooltipTriggers = document.querySelectorAll('.tooltip-trigger');
+    let activeTooltip: HTMLElement | null = null;
+
+    tooltipTriggers.forEach((trigger) => {
+      const tooltipText = trigger.getAttribute('data-tooltip');
+      if (!tooltipText) return;
+
+      // Create tooltip element
+      const tooltip = document.createElement('div');
+      tooltip.className = 'tooltip-popup absolute z-50 bg-gray-800 text-white text-xs rounded px-2 py-1 max-w-xs hidden';
+      tooltip.textContent = tooltipText;
+      document.body.appendChild(tooltip);
+
+      // Show tooltip on click/touch (mobile friendly)
+      const showTooltip = (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Hide any existing tooltip
+        if (activeTooltip && activeTooltip !== tooltip) {
+          activeTooltip.classList.add('hidden');
+        }
+        
+        const rect = (trigger as HTMLElement).getBoundingClientRect();
+        tooltip.style.left = `${rect.left + window.scrollX}px`;
+        tooltip.style.top = `${rect.bottom + window.scrollY + 5}px`;
+        
+        tooltip.classList.toggle('hidden');
+        activeTooltip = tooltip.classList.contains('hidden') ? null : tooltip;
+      };
+
+      // Hide tooltip when clicking elsewhere
+      const hideTooltip = () => {
+        tooltip.classList.add('hidden');
+        if (activeTooltip === tooltip) {
+          activeTooltip = null;
+        }
+      };
+
+      // Add event listeners for both touch and mouse
+      trigger.addEventListener('click', showTooltip);
+      trigger.addEventListener('touchstart', showTooltip);
+      
+      // Hide on hover out for desktop
+      trigger.addEventListener('mouseleave', () => {
+        setTimeout(hideTooltip, 100);
+      });
+    });
+
+    // Hide tooltips when clicking elsewhere
+    document.addEventListener('click', (e) => {
+      if (activeTooltip && !(e.target as HTMLElement)?.closest('.tooltip-trigger')) {
+        activeTooltip.classList.add('hidden');
+        activeTooltip = null;
+      }
+    });
+  }
 </script>
 
 <style>
