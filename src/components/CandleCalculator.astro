@@ -6,12 +6,7 @@
   <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="text-center mb-12">
-      <div class="flex flex-col items-center gap-2">
-        <!-- Large centered logo -->
-        <img src="/logo.svg" alt="Woodland Candle Logo" width="120" height="120" class="mx-auto" />
-        <!-- Calculator text in bold -->
-        <h1 class="text-xl lg:text-3xl font-black text-black tracking-wide">Recipe Calculator</h1>
-      </div>
+      <h1 class="text-xl lg:text-3xl font-black text-black tracking-wide">Recipe Calculator</h1>
     </div>
 
     <div class="grid lg:grid-cols-2 gap-8">
@@ -25,6 +20,31 @@
         </h2>
 
         <div class="space-y-6">
+          <!-- Primary Input: Number of Candles -->
+          <div class="bg-gradient-to-r from-[#a5b79b]/20 to-[#7a9173]/20 rounded-xl p-6 border-2 border-[#a5b79b]/30">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <svg class="w-6 h-6 text-[#a5b79b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a2 2 0 012-2z"></path>
+              </svg>
+              How many candles do you want to make?
+            </h3>
+            <div class="flex items-center gap-3">
+              <input 
+                type="number" 
+                id="totalCandles"
+                value="8"
+                min="1"
+                class="flex-1 px-4 py-4 text-2xl font-bold border-2 border-[#a5b79b] rounded-xl focus:ring-2 focus:ring-[#a5b79b] focus:border-transparent transition-all duration-200 bg-white text-center"
+                placeholder="Enter number"
+              />
+            </div>
+            <div id="jugBreakdown" class="mt-4 p-4 bg-white/60 rounded-lg">
+              <div class="text-sm text-gray-600 font-medium" id="jugCalculation">
+                1 full jug (8 candles)
+              </div>
+            </div>
+          </div>
+
           <!-- Container Type and Quantity -->
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -307,6 +327,42 @@
     }
   };
 
+  function updateJugBreakdown(): void {
+    const totalCandles = parseInt((document.getElementById('totalCandles') as HTMLInputElement)?.value) || 8;
+    const fullJugs = Math.floor(totalCandles / 8);
+    const partialCandles = totalCandles % 8;
+    
+    const jugCalculation = document.getElementById('jugCalculation');
+    if (jugCalculation) {
+      let breakdown = '';
+      
+      if (fullJugs > 0) {
+        breakdown += `${fullJugs} full ${fullJugs === 1 ? 'jug' : 'jugs'} (${fullJugs * 8} candles)`;
+      }
+      
+      if (partialCandles > 0) {
+        if (fullJugs > 0) {
+          breakdown += ` + `;
+        }
+        breakdown += `1 partial jug (${partialCandles} candles)`;
+      }
+      
+      if (totalCandles === 0) {
+        breakdown = 'Enter number of candles above';
+      }
+      
+      jugCalculation.textContent = breakdown;
+    }
+    
+    // Update the container quantity to match the calculated total jugs needed
+    const containerQuantityInput = document.getElementById('containerQuantity') as HTMLInputElement;
+    if (containerQuantityInput) {
+      const totalJugs = fullJugs + (partialCandles > 0 ? 1 : 0);
+      containerQuantityInput.value = totalJugs.toString();
+      updateWaterCapacity();
+    }
+  }
+
   function updateWaxProperties(): void {
     const waxType = (document.getElementById('waxType') as HTMLSelectElement)?.value || '464';
     const waxGravityInput = document.getElementById('waxGravity') as HTMLInputElement;
@@ -466,11 +522,13 @@
   }
 
   function calculateRecipe(): void {
-    // Calculate total water capacity from container selection
-    const containerType = (document.getElementById('containerType') as HTMLSelectElement)?.value || 'jug';
-    const quantity = parseInt((document.getElementById('containerQuantity') as HTMLInputElement)?.value) || 1;
+    // Calculate total water capacity based on exact candle count
+    const totalCandles = parseInt((document.getElementById('totalCandles') as HTMLInputElement)?.value) || 8;
+    const containerType = 'jug'; // Always use jug calculations now
     const containerData = containerTypes[containerType];
-    const jarCapacity = containerData.waterCapacity * quantity;
+    
+    // Calculate capacity based on exact candle count (each candle = 235g capacity)
+    const jarCapacity = totalCandles * 235;
     
     const waxGravity = parseFloat((document.getElementById('waxGravity') as HTMLInputElement)?.value) || 0.92;
     const scentLoad = parseFloat((document.getElementById('scentLoad') as HTMLInputElement)?.value) || 8;
@@ -504,67 +562,148 @@
     });
     
     // Display results
-    displayResults(waxWeight, totalFragranceWeight, fragrances, jarCapacity, waxType, waxFill, containerType, quantity);
+    displayResults(waxWeight, totalFragranceWeight, fragrances, jarCapacity, waxType, waxFill, containerType, totalCandles);
   }
 
-  function displayResults(waxWeight: number, totalFragranceWeight: number, fragrances: FragranceData[], jarCapacity: number, waxType: string, waxFill: number, containerType: string, quantity: number): void {
+  function displayResults(waxWeight: number, totalFragranceWeight: number, fragrances: FragranceData[], jarCapacity: number, waxType: string, waxFill: number, containerType: string, totalCandles: number): void {
     const container = document.getElementById('resultsContainer');
     if (!container) return;
 
     const totalWeight = waxWeight + totalFragranceWeight;
     const waxData = waxTypes[waxType] || waxTypes['464'];
-    const containerData = containerTypes[containerType];
     
-    // Calculate individual container amounts if making multiple
-    const individualWaxWeight = waxWeight / quantity;
-    const individualFragranceWeight = totalFragranceWeight / quantity;
-    const individualTotalWeight = totalWeight / quantity;
+    // Calculate jug breakdown
+    const fullJugs = Math.floor(totalCandles / 8);
+    const partialCandles = totalCandles % 8;
+    const totalJugs = fullJugs + (partialCandles > 0 ? 1 : 0);
+    
+    // Calculate per-jug amounts
+    const fullJugWaxWeight = fullJugs > 0 ? (waxWeight / totalCandles) * 8 : 0;
+    const fullJugFragranceWeight = fullJugs > 0 ? (totalFragranceWeight / totalCandles) * 8 : 0;
+    const partialJugWaxWeight = partialCandles > 0 ? (waxWeight / totalCandles) * partialCandles : 0;
+    const partialJugFragranceWeight = partialCandles > 0 ? (totalFragranceWeight / totalCandles) * partialCandles : 0;
     
     container.innerHTML = `
       <div class="space-y-6">
-        <!-- Summary Card -->
-        <div class="bg-gradient-to-r from-[#a5b79b]/10 to-[#7a9173]/10 rounded-xl p-6 border border-[#a5b79b]/20">
-          <h3 class="text-lg font-semibold text-gray-800 mb-4">Recipe Summary</h3>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="text-center">
-              <div class="text-2xl font-bold text-[#a5b79b]">${waxWeight.toFixed(1)}g</div>
-              <div class="text-sm text-gray-600">Total Wax Weight</div>
-              ${quantity > 1 ? `<div class="text-xs text-gray-500">${individualWaxWeight.toFixed(1)}g per ${containerData.description}</div>` : ''}
-            </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-[#7a9173]">${totalFragranceWeight.toFixed(1)}g</div>
-              <div class="text-sm text-gray-600">Total Fragrance</div>
-              ${quantity > 1 ? `<div class="text-xs text-gray-500">${individualFragranceWeight.toFixed(1)}g per ${containerData.description}</div>` : ''}
-            </div>
-          </div>
-          <div class="mt-4 pt-4 border-t border-gray-200">
-            <div class="text-center">
-              <div class="text-lg font-semibold text-gray-800">${totalWeight.toFixed(1)}g</div>
-              <div class="text-sm text-gray-600">Total Recipe Weight</div>
-              ${quantity > 1 ? `<div class="text-xs text-gray-500">${individualTotalWeight.toFixed(1)}g per ${containerData.description}</div>` : ''}
-              <div class="text-xs text-gray-500 mt-1">Volume-locked to ${quantity} ${quantity === 1 ? containerData.description : containerData.description + 's'} (${waxFill.toFixed(1)}g capacity)</div>
-            </div>
+        <!-- Jug Preparation Instructions -->
+        <div class="bg-gradient-to-r from-[#a5b79b]/15 to-[#7a9173]/15 rounded-xl p-6 border-2 border-[#a5b79b]/30">
+          <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <svg class="w-6 h-6 text-[#a5b79b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+            </svg>
+            Jug Preparation for ${totalCandles} Candles
+          </h3>
+          <div class="space-y-3">
+            ${fullJugs > 0 ? `
+              <div class="bg-white/60 rounded-lg p-4">
+                <div class="font-semibold text-gray-800 mb-2">Prep ${fullJugs} Full ${fullJugs === 1 ? 'Jug' : 'Jugs'} (${fullJugs * 8} candles)</div>
+                <div class="flex items-center gap-4">
+                  <div class="bg-[#a5b79b]/20 px-4 py-2 rounded-lg border-2 border-[#a5b79b]">
+                    <div class="text-2xl font-bold text-[#a5b79b]">${fullJugWaxWeight.toFixed(1)}g</div>
+                    <div class="text-xs text-gray-600 font-medium">wax per jug</div>
+                  </div>
+                  <div class="text-lg text-gray-600">+</div>
+                  <div class="bg-[#7a9173]/20 px-4 py-2 rounded-lg border border-[#7a9173]">
+                    <div class="text-lg font-bold text-[#7a9173]">${fullJugFragranceWeight.toFixed(1)}g</div>
+                    <div class="text-xs text-gray-600 font-medium">fragrance per jug</div>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+            ${partialCandles > 0 ? `
+              <div class="bg-white/60 rounded-lg p-4">
+                <div class="font-semibold text-gray-800 mb-2">Prep 1 Partial Jug (${partialCandles} candles)</div>
+                <div class="flex items-center gap-4">
+                  <div class="bg-[#a5b79b]/20 px-4 py-2 rounded-lg border-2 border-[#a5b79b]">
+                    <div class="text-2xl font-bold text-[#a5b79b]">${partialJugWaxWeight.toFixed(1)}g</div>
+                    <div class="text-xs text-gray-600 font-medium">wax for partial jug</div>
+                  </div>
+                  <div class="text-lg text-gray-600">+</div>
+                  <div class="bg-[#7a9173]/20 px-4 py-2 rounded-lg border border-[#7a9173]">
+                    <div class="text-lg font-bold text-[#7a9173]">${partialJugFragranceWeight.toFixed(1)}g</div>
+                    <div class="text-xs text-gray-600 font-medium">fragrance for partial jug</div>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
           </div>
         </div>
 
-        <!-- Fragrance Breakdown -->
-        ${fragrances.length > 0 ? `
-          <div>
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Fragrance Breakdown</h3>
-            <div class="space-y-3">
-              ${fragrances.map((fragrance: FragranceData, index: number) => `
-                <div class="bg-white/60 rounded-lg p-4 border border-gray-200 flex justify-between items-center">
-                  <div>
-                    <div class="font-medium text-gray-800">${fragrance.name}</div>
-                    <div class="text-sm text-gray-600">${fragrance.percentage}% of fragrance</div>
-                  </div>
-                  <div class="text-right">
-                    <div class="text-lg font-semibold text-[#a5b79b]">${fragrance.weight?.toFixed(2)}g</div>
-                    <div class="text-xs text-gray-500">${((fragrance.weight! / totalWeight) * 100).toFixed(1)}% of total</div>
-                  </div>
-                </div>
-              `).join('')}
+        <!-- Main Recipe Amounts -->
+        <div class="bg-gradient-to-r from-[#a5b79b]/10 to-[#7a9173]/10 rounded-xl p-6 border border-[#a5b79b]/20">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">Total Recipe Amounts</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="text-center">
+              <div class="text-3xl font-bold text-[#a5b79b]">${waxWeight.toFixed(1)}g</div>
+              <div class="text-sm font-medium text-gray-700">Total Wax Weight</div>
             </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-[#7a9173]">${totalFragranceWeight.toFixed(1)}g</div>
+              <div class="text-sm font-medium text-gray-700">Total Fragrance Weight</div>
+            </div>
+          </div>
+          <div class="mt-4 pt-4 border-t border-gray-200 text-center">
+            <div class="text-lg font-semibold text-gray-800">${totalWeight.toFixed(1)}g</div>
+            <div class="text-sm text-gray-600">Total Recipe Weight</div>
+            <div class="text-xs text-gray-500 mt-1">For ${totalCandles} candles (${waxFill.toFixed(1)}g capacity)</div>
+          </div>
+        </div>
+
+        <!-- Individual Jug Fragrance Weights -->
+        ${fragrances.length > 0 ? `
+          <div class="bg-white/70 rounded-xl p-6 border border-gray-200">
+            <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <svg class="w-6 h-6 text-[#7a9173]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+              </svg>
+              Individual Jug Fragrance Weights
+            </h3>
+            
+            ${fullJugs > 0 ? `
+              <div class="mb-6">
+                <h4 class="font-semibold text-gray-800 mb-3">Per Full Jug (8 candles each)</h4>
+                <div class="space-y-2">
+                  ${fragrances.map((fragrance: FragranceData, index: number) => {
+                    const perFullJugWeight = (fragrance.weight! / totalCandles) * 8;
+                    return `
+                      <div class="bg-gradient-to-r from-[#7a9173]/10 to-[#a5b79b]/10 rounded-lg p-3 border border-[#7a9173]/20 flex justify-between items-center">
+                        <div>
+                          <div class="font-bold text-gray-800">${fragrance.name}</div>
+                          <div class="text-xs text-gray-600">${fragrance.percentage}% of fragrance mix</div>
+                        </div>
+                        <div class="text-right">
+                          <div class="text-xl font-bold text-[#7a9173]">${perFullJugWeight.toFixed(2)}g</div>
+                          <div class="text-xs text-gray-500">per full jug</div>
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            ` : ''}
+            
+            ${partialCandles > 0 ? `
+              <div>
+                <h4 class="font-semibold text-gray-800 mb-3">For Partial Jug (${partialCandles} candles)</h4>
+                <div class="space-y-2">
+                  ${fragrances.map((fragrance: FragranceData, index: number) => {
+                    const perPartialJugWeight = (fragrance.weight! / totalCandles) * partialCandles;
+                    return `
+                      <div class="bg-gradient-to-r from-[#a5b79b]/10 to-[#7a9173]/10 rounded-lg p-3 border border-[#a5b79b]/20 flex justify-between items-center">
+                        <div>
+                          <div class="font-bold text-gray-800">${fragrance.name}</div>
+                          <div class="text-xs text-gray-600">${fragrance.percentage}% of fragrance mix</div>
+                        </div>
+                        <div class="text-right">
+                          <div class="text-xl font-bold text-[#a5b79b]">${perPartialJugWeight.toFixed(2)}g</div>
+                          <div class="text-xs text-gray-500">for partial jug</div>
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            ` : ''}
           </div>
         ` : ''}
 
@@ -587,23 +726,79 @@
           </div>
         </div>
 
-        <!-- Instructions -->
-        <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
-          <h3 class="text-sm font-semibold text-blue-800 mb-2">Sarah's Wax Melter Instructions</h3>
-          <ol class="text-sm text-blue-700 space-y-1 list-decimal list-inside">
-            <li>Melt all wax in wax melter to ${waxData.meltTemp}°F</li>
-            <li>Pre-mix all fragrance oils together in a separate container:</li>
-            <ul class="text-sm text-blue-600 ml-4 mt-1 space-y-0.5 list-disc list-inside">
-              ${fragrances.map((f: FragranceData) => `<li>${f.weight?.toFixed(2)}g of ${f.name}</li>`).join('')}
-            </ul>
-            <li>Pour melted wax into mixing pitcher to measure ${waxWeight.toFixed(1)}g</li>
-            <li>Wait for pitcher to reach ${waxData.mixTemp}°F</li>
-            <li>Add entire fragrance mixture (${totalFragranceWeight.toFixed(1)}g total) to pitcher</li>
-            <li>Mix oils into wax very well (2-3 minutes)</li>
-            <li>Wait for pitcher to cool to ${waxData.pourTemp}°F</li>
-            <li>Transfer wax from pitcher to wax dispenser</li>
-            <li>Pour candles and allow to cure for 24-48 hours</li>
-          </ol>
+        <!-- Sarah's Jug-by-Jug Instructions -->
+        <div class="bg-blue-50 rounded-lg p-6 border border-blue-200">
+          <h3 class="text-lg font-semibold text-blue-800 mb-4 flex items-center gap-2">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Sarah's Jug-by-Jug Instructions
+          </h3>
+          <div class="space-y-4">
+            <div class="bg-white/60 rounded-lg p-4">
+              <h4 class="font-semibold text-blue-800 mb-2">Setup</h4>
+              <div class="text-sm text-blue-700 space-y-1">
+                <div>• Melt wax in wax melter to ${waxData.meltTemp}°F</div>
+                <div>• You'll be making each jug individually</div>
+              </div>
+            </div>
+            
+            ${fullJugs > 0 ? `
+              <div class="bg-white/60 rounded-lg p-4">
+                <h4 class="font-semibold text-blue-800 mb-2">For Each Full Jug (${fullJugs} ${fullJugs === 1 ? 'jug' : 'jugs'} total - 8 candles each)</h4>
+                <div class="text-sm text-blue-700 space-y-1">
+                  <div><strong>Per jug fragrance mix:</strong></div>
+                  <ul class="ml-4 mt-1 space-y-0.5 list-disc list-inside">
+                    ${fragrances.map((f: FragranceData) => {
+                      const perFullJugWeight = (f.weight! / totalCandles) * 8;
+                      return `<li><strong>${perFullJugWeight.toFixed(2)}g</strong> of ${f.name}</li>`;
+                    }).join('')}
+                  </ul>
+                  <div class="mt-2 space-y-1">
+                    <div>• Mix these fragrances together in a separate container</div>
+                    <div>• Measure <strong>${fullJugWaxWeight.toFixed(1)}g</strong> of melted wax into mixing pitcher</div>
+                    <div>• Wait for pitcher to reach ${waxData.mixTemp}°F</div>
+                    <div>• Add fragrance mixture (${fullJugFragranceWeight.toFixed(1)}g total) to pitcher</div>
+                    <div>• Mix oils into wax very well (2-3 minutes)</div>
+                    <div>• Wait for pitcher to cool to ${waxData.pourTemp}°F</div>
+                    <div>• Transfer to wax dispenser and pour 8 candles</div>
+                    <div>• Repeat for each full jug</div>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+            
+            ${partialCandles > 0 ? `
+              <div class="bg-white/60 rounded-lg p-4">
+                <h4 class="font-semibold text-blue-800 mb-2">For Partial Jug (${partialCandles} candles)</h4>
+                <div class="text-sm text-blue-700 space-y-1">
+                  <div><strong>Partial jug fragrance mix:</strong></div>
+                  <ul class="ml-4 mt-1 space-y-0.5 list-disc list-inside">
+                    ${fragrances.map((f: FragranceData) => {
+                      const perPartialJugWeight = (f.weight! / totalCandles) * partialCandles;
+                      return `<li><strong>${perPartialJugWeight.toFixed(2)}g</strong> of ${f.name}</li>`;
+                    }).join('')}
+                  </ul>
+                  <div class="mt-2 space-y-1">
+                    <div>• Mix these fragrances together in a separate container</div>
+                    <div>• Measure <strong>${partialJugWaxWeight.toFixed(1)}g</strong> of melted wax into mixing pitcher</div>
+                    <div>• Wait for pitcher to reach ${waxData.mixTemp}°F</div>
+                    <div>• Add fragrance mixture (${partialJugFragranceWeight.toFixed(1)}g total) to pitcher</div>
+                    <div>• Mix oils into wax very well (2-3 minutes)</div>
+                    <div>• Wait for pitcher to cool to ${waxData.pourTemp}°F</div>
+                    <div>• Transfer to wax dispenser and pour ${partialCandles} candles</div>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+            
+            <div class="bg-white/60 rounded-lg p-4">
+              <h4 class="font-semibold text-blue-800 mb-2">Final Step</h4>
+              <div class="text-sm text-blue-700">
+                <div>• Allow all ${totalCandles} candles to cure for 24-48 hours</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -619,6 +814,7 @@
     const containerQuantityInput = document.getElementById('containerQuantity') as HTMLInputElement;
     const waxGravityInput = document.getElementById('waxGravity') as HTMLInputElement;
     const scentLoadInput = document.getElementById('scentLoad') as HTMLInputElement;
+    const totalCandlesInput = document.getElementById('totalCandles') as HTMLInputElement;
     const initialPercentageInput = document.querySelector('.fragrance-percentage') as HTMLInputElement;
     const initialRemoveBtn = document.querySelector('.remove-fragrance') as HTMLButtonElement;
 
@@ -656,6 +852,13 @@
       scentLoadInput.addEventListener('input', calculateRecipe);
     }
 
+    if (totalCandlesInput) {
+      totalCandlesInput.addEventListener('input', () => {
+        updateJugBreakdown();
+        calculateRecipe();
+      });
+    }
+
     if (initialPercentageInput) {
       initialPercentageInput.addEventListener('input', updateTotalPercentage);
     }
@@ -679,6 +882,7 @@
 
     updateFragranceNumbers();
     updateWaxProperties();
+    updateJugBreakdown(); // Initialize jug breakdown display
     updateWaterCapacity(); // Initialize water capacity display
     
     // Initialize mobile-friendly tooltips
